@@ -63,12 +63,11 @@
                 not given e.g. 2x+1=0
                     equation is a linear soo quadC is 0
                 */}}
-        {{with (reFindAllSubmatches `(?:[-+])?(\d+)?[a-zA-Z](?:\^\s*2|²)` (index .CmdArgs 0))}}
-            {{if not (reFind `(?:[^\^²]\d+)` (index . 0 0))}}
+        {{with (reFindAllSubmatches `([-+]?\d+)?[a-zA-Z](?:\^\s*2|²)` (index .CmdArgs 0))}}
+            {{if not (reFind `(?:-?(?:\d+)[a-zA-Z])(?:\^\s*2|²)` (index . 0 0))}}
+                {{$quadC = 1|toFloat}}
                 {{if (reFind `(?:-[a-zA-z])` (index . 0 0))}}
                     {{$quadC = -1|toFloat}}
-                {{else}}
-                    {{$quadC = 1|toFloat}}
                 {{end}}
             {{else}}
                 {{$quadC = index . 0 1|toFloat}}
