@@ -1,0 +1,118 @@
+{{/*
+    Polynomial CaquadCulator
+
+    Trigger can be more simple
+        suggested trigger :  \A(?:\-|<@!?204255221017214977>)\s*(?:polynomial calculator|pc|polcal|polycal|polycalcu)(?:\s+|\z)
+        trigger type : RegEx
+
+    Made by Aishen#3668
+*/}}
+
+{{$ex := "png" }}{{if reFind "a_" .Guild.Icon}}{{$ex = "gif" }}{{end}}{{$icon := print "https://cdn.discordapp.com/icons/" .Guild.ID "/" .Guild.Icon "." $ex "?size=1024" }}
+
+{{/*matches either Quadratic (ax^2+bx+c=0) or Linear (ax+b=c) Equation*/}}
+{{$equation := `\A(?:(?:-?\d+)?[a-zA-Z]|-?(?:\d+|[a-zA-Z]))\s*(?:\^\s*2|²)?(?:\s*[+-]\s*(?:(?:-?\d+)?[a-zA-Z]|-?\d+)(?:\^\s*2|²)?)*\s*=(?:(?:-?\d+)?[a-zA-Z]|-?(?:\d+|[a-zA-Z]))\s*(?:\^\s*2|²)?(?:\s*[+-]\s*(?:(?:-?\d+)?[a-zA-Z]|-?\d+)(?:\^\s*2|²)?)*\s*`}}
+
+{{/*default embed :) you can edit dis one*/}}
+{{$embed:=sdict "author" (sdict "icon_url" (.User.AvatarURL "256") "name" (print "User: " .User.String)) "footer" (sdict "text" "Made by Aishen#3668")  "color" 16711680 "thumbnail" (sdict "url" $icon)}}
+
+{{$err := 0}} {{/*check if error*/}}
+
+{{/*checks if user puts invalid input*/}}
+{{if eq (len .CmdArgs) 0}}
+    {{$err = 1}}{{/*means error become true // no args provided*/}}
+{{else}}
+    {{if (reFind $equation (index .CmdArgs 0))}}
+            {{$embed.Set "title" "Answer!"}}
+            {{$embed.Set "color" 123456}}
+
+    {{/*initial variables*/}}
+        {{$linC := 0|toFloat}}
+        {{$c := 0|toFloat}}
+        {{$quadC := 0|toFloat}}
+        {{$x := (index (index .CmdArgs 0|reFindAllSubmatches `[=](\d+)`) 0 1)|toFloat}}
+
+        {{/*defining coefficients code*/}}
+        {{/*constant*/}}
+        {{with (reFindAllSubmatches `([-+]\d+)[-+=]` (index .CmdArgs 0))}}
+            {{$c = sub (index . 0 1|toFloat) $x}}
+        {{end}}
+        {{/*linear*/}}
+        {{with (reFindAllSubmatches `(?:[-+])?(\d+)?(?:[a-zA-Z][^\^²])` (index .CmdArgs 0))}}
+            {{if not (reFind `\d+` (index . 0 0))}}
+                {{if (reFind `(?:-[a-zA-z])` (index . 0 0))}}
+                    {{$linC = -1|toFloat}}
+                {{else}}
+                    {{$linC = 1|toFloat}}
+                {{end}}
+            {{else if eq (index . 0|len) 2}}
+                {{$linC = index . 0 1|toFloat}}
+            {{end}}
+        {{end}}
+        {{/*quadratic*/}}
+                {{/*explanation 
+                
+                Find a,b,c in ax^2+bx+c=0
+            there are 4 possible inputs to find the coefficients 
+                like if e.g x^2+2x+1=0
+                    quadC(coefficient for degree of 2) will be 1
+                like if e.g -x^2+2x+1=0
+                    quadC(coefficient for degree of 2) will be -1
+                4x^2+2x+4=0
+                    quadC will be 4
+                not given e.g. 2x+1=0
+                    equation is a linear soo quadC is 0
+                */}}
+        {{with (reFindAllSubmatches `(?:[-+])?(\d+)?[a-zA-Z](?:\^\s*2|²)` (index .CmdArgs 0))}}
+            {{if not (reFind `(?:[^\^²]\d+)` (index . 0 0))}}
+                {{if (reFind `(?:-[a-zA-z])` (index . 0 0))}}
+                    {{$quadC = -1|toFloat}}
+                {{else}}
+                    {{$quadC = 1|toFloat}}
+                {{end}}
+            {{else}}
+                {{$quadC = index . 0 1|toFloat}}
+            {{end}} 
+        {{end}}
+
+        {{/*check if its a Quadratic or Linear*/}}
+        {{/*if linear*/}}
+        {{if eq ($quadC|toInt) 0}}
+            {{$x1 := fdiv (mult (-1|toFloat) $c) ($linC)}}
+            {{$embed.Set "description" (print "**Equation : ```\n" (index .CmdArgs 0) "```Linear Coefficient : ```\n" $linC "```Constant : ```\n" $c "```Answer : ```\n( " $x1 " )" "```**" )}}
+
+        {{else}}{{/*else quadratic*/}}
+            {{$discriminant := (add (pow $linC (2|toFloat)) (mult (-4|toFloat) $quadC $c ))|toFloat}}
+            {{$b := (mult $linC (-1|toFloat))}}
+            {{$denominator := (mult (2|toFloat) $quadC)}}
+            {{/*formula*/}}
+            {{$x1 := (fdiv (add (mult $linC -1) (sqrt (add (pow $linC 2) (mult -4 $quadC $c ))|printf "%.6f")) (mult 2 $quadC)) }}
+            {{$x2 := (fdiv (sub (mult $linC -1) (sqrt (add (pow $linC 2) (mult -4 $quadC $c ))|printf "%.6f")) (mult 2 $quadC)) }}
+
+            {{/*nature of roots applied, read more at https://intl.siyavula.com/read/maths/grade-11/equations-and-inequalities/02-equations-and-inequalities-06 */}}
+            {{if eq ($discriminant|toInt) 0}}
+                {{$embed.Set "description" (print "**Equation : ```\n" (index .CmdArgs 0) "```Leading Coefficient : ```\n" $quadC "```Linear Coefficient : ```\n" $linC "```Constant : ```\n" $c "```Answer : ```\n( " $x1 ")```**" )}}
+            {{else if lt ($discriminant|toInt) 0}}
+                {{$x1 = (print "__```\n" $b "±√" $discriminant "```__```\n  " $denominator "```")}}
+                {{$embed.Set "description" (print "**Equation : ```\n" (index .CmdArgs 0) "```Leading Coefficient : ```\n" $quadC "```Linear Coefficient : ```\n" $linC "```Constant : ```\n" $c "```Answer : " $x1  "**" )}}
+            {{else if eq (toInt (sqrt $discriminant)) (sqrt $discriminant|toInt)}}
+                {{$x1 = (print "__```\n" $b "±√" $discriminant "```__```\n  " $denominator "```")}}
+                {{$embed.Set "description" (print "**Equation : ```\n" (index .CmdArgs 0) "```Leading Coefficient : ```\n" $quadC "```Linear Coefficient : ```\n" $linC "```Constant : ```\n" $c "```Answer : " $x1  "**" )}}
+            {{else if gt ($discriminant|toInt) 0}}
+                {{$embed.Set "description" (print "**Equation : ```\n" (index .CmdArgs 0) "```Leading Coefficient : ```\n" $quadC "```Linear Coefficient : ```\n" $linC "```Constant : ```\n" $c "```Answer : ```\n( " $x1 ", " $x2 ")" "```**" )}}
+            {{end}}
+        {{end}}
+    {{else}} {{/*expression not defined*/}}
+        {{$embed.Set "title" "Error."}}
+        {{$embed.Set "description" (print "Can't Evaluate " (index .CmdArgs 0) " as an equation :(")}}
+    {{end}}
+{{end}}
+
+{{if eq $err 1}} {{/*no args provided*/}}
+    {{$embed.Set "title" "**Error**"}}
+    {{$embed.Set "description" "You did provide invalid argruments :( ```\nUsage : -polynomiaquadCaquadCulator <[linear|quadratic]> <equation>\nAliases : [pc, poquadCal, polycal, polycaquadCu]``` "}}
+    {{$embed.Set "color" 16711680}}{{sendMessage nil (cembed $embed)}}
+{{else}}{{/*if success*/}}
+    {{sendMessage nil (cembed $embed)}}
+{{end}}
+
