@@ -1,0 +1,80 @@
+{{/*
+	Registrating System PUBG
+
+		trigger:`(?i)^(?:(?:(?:(?:team)\s*?(?:name)\s*?)(?:[\:-=]+)?(?:\s*)?(?:.{1,})(?:\n))(?:(?:clan(?:\s*?))(?:prefix)(?:\s*?)(?:[\:-=]+)?)(?:.{1,})(?:\n+?)){1}`  https://regex101.com/r/cI6kUY/5
+		trigger type RegEx
+		made by Aivan/Aishen
+*/}}
+{{/*configuring section*/}}
+{{$isEmbed := 1}}{{/*optional...change the value to 1 if you want to be send as embed*/}}
+{{$deleteResponse := 0}}{{/*optional...change the value to 1 if you want to delete response*/}}
+{{$timer := 10}}{{/*time before delete message is seconds ($deleteResponse must be set to 1)*/}}
+{{$minimum := 4}}{{/*required  minimum numbers of members..*/}}
+{{$expiration := (toDuration "1d0h0m0s").Seconds}}{{/*1 day expiration before registration expires, you can edit this one*/}}
+{{$members := ""}}
+{{/*variables dont touch baka!*/}}
+{{$content := reFindAllSubmatches `(?i)^(?:(?:(?:(?:team)\s*?(?:name)\s*?)(?:[\:-=]+)?(?:\s*)(?:[\:-=]+)?(?:\s)?(.{1,})(?:\n))(?:(?:clan(?:\s*?))(?:prefix)(?:\s*?)(?:[\:-=]+)?)(?:\s*)?(?:[\:-=]+)?(?:\s*)?(.{1,})(?:\n+?)){1}` .Message.Content}}
+{{$mentions := cslice .User.ID}}
+{{$teams := dbGetPattern 10 (print "teamname_%") 100 0}}
+{{$ex := "png" }}{{if reFind "a_" .Guild.Icon}}{{$ex = "gif" }}{{end}}{{$icon := print "https://cdn.discordapp.com/icons/" .Guild.ID "/" .Guild.Icon "." $ex "?size=1024" }}
+{{$embed:=sdict "footer" (sdict "text" .Guild.Name "icon_url" $icon)  "color" 16711680 "thumbnail" (sdict "url" (.User.AvatarURL "256") )}}
+{{$reply := ""}}
+{{$msgID := 0}}
+{{$check := 0}}
+{{$counter := (dbGet 10 "counter").Value}}
+{{if not $counter}}
+    {{dbSet 10 "counter" 1}}
+{{end}}
+
+{{/*main code, READ COMMENTS*/}}
+{{/*check if name is below limi chars (max characters team name/clan prefix is 25/10)*/}}
+{{if or (gt (len (toRune (index $content 0 1))) 25) (gt (len (toRune (index $content 0 2))) 10)}}{{/*if above limit*/}}
+    {{$reply = "**MAXIMUM LIMIT FOR `TEAM NAME/CLAN PREFIX` IS `25/10`!!**"}}
+    {{$embed.Set "title" "INVALID INPUT"}}
+{{else}}{{/*if below limit*/}}
+    {{if lt (len .Message.Mentions) $minimum}}
+        {{$reply = "**4 MEMBERS REQUIRED TO REGISTER!!**"}}
+    {{else}}
+        {{range .Message.Mentions}}
+            {{$mentions = $mentions.Append .ID}}
+            {{$members = (print $members "\n> " .Username )}}
+        {{end}}
+        
+        {{if eq $check 0}}
+        {{/*checking if the name of team already existing or a member is already occupied*/}}
+            {{range $teams}}
+                {{if (eq (print "teamname_" (str (index $content 0 1))) .Key)}}
+                    {{$reply = "TEAM NAME IS ALREADY EXISTING"}}
+                    {{$check = 1}}
+                {{else}}
+                    {{range .Value}}
+                        {{if in $mentions . }}
+                            {{$reply = "THAT MEMBER IS CURRENTLY ON OTHER TEAM!!"}}
+                            {{$check = 1}}
+                        {{end}}
+                    {{end}}
+                {{end}}
+            {{end}}
+        {{end}}
+    {{end}}
+{{end}}
+
+{{if eq $check 0}}
+    {{dbSetExpire 10 (print "teamname_" (index $content 0 1)) $mentions (toInt $expiration)}}
+    {{$reply = $members}}
+    {{$embed.Set "color" 123456}}
+    {{$embed.Set "title" "Registration Confirmed"}}
+    {{dbSet 10 "counter" (add $counter 1)}}
+{{else}}
+    {{$embed.Set "title" "Invalid Entry"}}
+{{end}}
+{{$embed.Set "description" (print "**\x60\x60\x60go\n" $reply "\x60\x60\x60**")}}
+
+{{if eq $isEmbed 1}}
+    {{$msgID = sendMessageRetID nil (cembed $embed)}}
+{{else}}
+    {{$msgID = sendMessageRetID nil (print "**\x60\x60\x60go\n" $reply "\x60\x60\x60**")}}
+{{end}}
+{{if eq $deleteResponse 1 }}
+    {{deleteMessage nil $msgID $timer}}
+{{end}}

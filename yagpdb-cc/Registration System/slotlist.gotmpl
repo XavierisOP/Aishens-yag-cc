@@ -1,0 +1,22 @@
+{{/*
+    trigger -slotlist
+    trigger type Command
+
+    THIS IS ONLY A TEMPLATE FOR SLOT LISTING YOU CAN CHANGE IT AS MUCH YOU WANTED
+    by Aishen ;)
+*/}}
+{{if or (not (dbGet 10 "counter"))}}
+    {{sendMessage nil "\x60\x60\x60\nNO ONE HAS REGISTERED YET\x60\x60\x60"}}
+{{else}}
+{{$k:= seq 0 20 }}
+{{$counter:=1}}
+{{$msg :=""}}
+{{range ( dbGetPattern 10 `teamname_%` 20 0) }}
+    {{$counter =add $counter 1}}
+    {{$name := slice .Key 9 (len .Key)}}
+    {{$msg = print $msg "[ SL " $counter  " ]  " $name "\n"}}
+{{end}}
+{{sendMessage nil (print "✪━•━•━•━•━•━◤★◢━•━•━•━•━•━✪\n•  __**YOUNG TERMINATOR ESPORTS**__  •\n•  __**YOUNG TERMINATOR ESPORTS**__  •\n                           •  **T3 SCRIMS**  • \n★▬▬▬✫▬▬▬★▬▬▬✫▬▬▬★\n__**MATCH INFO**__\n✪━•━•━•━•━•━◤★◢━•━•━•━•━•━✪\nID & PASS                : 2:50 PM\nMATCH TIMING   :   3:00 PM\nGAME MODE         : TPP\nMAP                          :  ERANGEL\n★▬▬▬✫▬▬▬★▬▬▬✫▬▬▬\n\n ---------   **SLOT LIST**  ----------\n★▬▬▬✫▬▬▬★▬▬▬✫▬▬▬\n\n----------------------\n[ SL 1 ]    Not to be used!\n" $msg "[ SL 21 ]   . Subscription Slot\n[ SL 22 ]   . Subscription Slot\n[ SL 23 ]   . Subscription Slot\n[ SL 24 ]   . Subscription Slot\n[ SL 25 ]   . Subscription Slot\n----------------------\n<a:ATD_warn2:796694576634134558> *NOTE- ALL PLAYERS ARE REQUESTED TO JOIN THE ROOM 5 MIN PRIOR TO START OF THE MATCH FOR ID VERIFICATION. IF ANYONE FAILED TO JOIN THE ROOM AT THE TIME OF VERIFICATION HE/SHE WILL BE KICKED OUT FROM THE ROOM*")}} 
+{{deleteTrigger 0 }}
+
+{{end}}

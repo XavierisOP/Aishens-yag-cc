@@ -1,0 +1,19 @@
+{{/*
+    trigger : reset
+    trigger type : command
+
+    reset all the slot list :)
+*/}}
+
+{{$c := 0}}
+{{if .IsPremium}}
+    {{range (dbGetPattern 10 "%" 49 0)}}{{$c = add $c 1}}{{dbDel .UserID .Key}}{{end}}
+{{else}}
+    {{range (dbGetPattern 10 "%" 9 0)}}{{$c = add $c 1}}{{dbDel .UserID .Key}}{{end}}
+{{end}}
+{{if ne $c 0}}
+    {{execCC .CCID nil 10 .ExecData}}
+{{else}}
+    {{sendMessage nil (print .User.Mention " Im Done Reseting the Slot List!")}}
+    {{deleteMessage nil .ExecData.id 0}}
+{{end}}
